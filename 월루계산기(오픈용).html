@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026 실시간 월급루팡 타이머 & 일기장</title>
+  <style>
+    /* 테마 정의 (12가지 선명하고 화사한 컬러 조합) */
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --sub-text: #64748b;
+      --accent: #2563eb;
+      --money: #16a34a;
+      --border: #e2e8f0;
+      --shadow: 0 10px 25px -5px rgba(0,0,0,0.08);
+    }
+
+    [data-theme="milk-pastel"] {
+      --bg: #fff5f7; --card-bg: #ffffff; --text: #2d3748; --sub-text: #a0aec0; --accent: #ff6b81; --money: #2ed573; --border: #ffe3e8; --shadow: 0 10px 25px -5px rgba(255,107,129,0.12);
+    }
+    [data-theme="soda-pop"] {
+      --bg: #e0f2fe; --card-bg: #ffffff; --text: #0c4a6e; --sub-text: #0284c7; --accent: #0284c7; --money: #10b981; --border: #bae6fd; --shadow: 0 10px 25px -5px rgba(2,132,199,0.15);
+    }
+    [data-theme="sunshine"] {
+      --bg: #fefce8; --card-bg: #ffffff; --text: #422006; --sub-text: #a16207; --accent: #eab308; --money: #16a34a; --border: #fef08a; --shadow: 0 10px 25px -5px rgba(234,179,8,0.15);
+    }
+    [data-theme="bubblegum"] {
+      --bg: #fdf4ff; --card-bg: #ffffff; --text: #701a75; --sub-text: #c026d3; --accent: #d946ef; --money: #10b981; --border: #f5d0fe; --shadow: 0 10px 25px -5px rgba(217,70,239,0.15);
+    }
+    [data-theme="clean-neon"] {
+      --bg: #111827; --card-bg: #1f2937; --text: #f9fafb; --sub-text: #9ca3af; --accent: #38bdf8; --money: #4ade80; --border: #374151; --shadow: 0 10px 25px -5px rgba(0,0,0,0.4);
+    }
+    [data-theme="kuromi-punk"] {
+      --bg: #181124; --card-bg: #261b36; --text: #f3e8ff; --sub-text: #c084fc; --accent: #c084fc; --money: #f472b6; --border: #3b2752; --shadow: 0 10px 25px -5px rgba(192,132,252,0.2);
+    }
+    [data-theme="emerald-city"] {
+      --bg: #064e3b; --card-bg: #047857; --text: #ecfdf5; --sub-text: #a7f3d0; --accent: #34d399; --money: #facc15; --border: #059669; --shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+    }
+    [data-theme="cyber-dark"] {
+      --bg: #030712; --card-bg: #111827; --text: #f9fafb; --sub-text: #6b7280; --accent: #6366f1; --money: #22c55e; --border: #1f2937; --shadow: 0 10px 25px -5px rgba(0,0,0,0.6);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px 12px; }
+    .container { background: var(--card-bg); border-radius: 28px; padding: 32px 24px; width: 100%; max-width: 500px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    
+    header { text-align: center; margin-bottom: 24px; }
+    h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; }
+    .subtitle { font-size: 0.88rem; color: var(--sub-text); font-weight: 600; }
+
+    .status-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; margin-top: 10px; background: rgba(0,0,0,0.05); }
+
+    .main-box { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 20px; }
+    .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--sub-text); margin-bottom: 6px; font-weight: 700; }
+    .amount { font-size: 2.8rem; font-weight: 900; color: var(--money); font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .time-sub { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-top: 8px; font-variant-numeric: tabular-nums; }
+
+    .progress-container { margin-bottom: 24px; }
+    .progress-bar-bg { background: var(--border); height: 12px; border-radius: 6px; overflow: hidden; position: relative; }
+    .progress-bar-fill { background: var(--accent); height: 100%; width: 0%; transition: width 0.3s ease; }
+    .progress-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--sub-text); margin-top: 6px; font-weight: 600; }
+
+    .actions { display: flex; gap: 10px; margin-bottom: 24px; }
+    .btn { flex: 1; padding: 14px; border: none; border-radius: 14px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
+    .btn:active { transform: scale(0.98); }
+    .btn-rest-start { background-color: var(--accent); color: #fff; }
+    .btn-rest-end { background-color: #ef4444; color: #fff; }
+
+    .diary-section { border-top: 1px solid var(--border); padding-top: 20px; }
+    .diary-header { font-size: 1rem; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .diary-list { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .diary-item { background: var(--bg); border: 1px solid var(--border); padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+    .diary-item .text { font-weight: 600; color: var(--text); }
+    .diary-item .earned { color: var(--money); font-weight: 700; }
+
+    .settings-section { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px; font-size: 0.85rem; }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .setting-item label { display: block; font-size: 0.75rem; color: var(--sub-text); margin-bottom: 4px; font-weight: 600; }
+    .setting-item input, .setting-item select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>2026 월급루팡 타이머</h1>
+      <div class="subtitle" id="rateInfo">시급 10,320원 (초당 2.87원)</div>
+      <div class="status-badge" id="statusBadge">상태 계산 중...</div>
+    </header>
+
+    <div class="main-box">
+      <div class="label">오늘 지금까지 번 돈 💰</div>
+      <div class="amount" id="earnedAmount">0 원</div>
+      <div class="time-sub" id="currentTime">00:00:00</div>
+    </div>
+
+    <div class="progress-container">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-labels">
+        <span id="labelWorkStart">09:00</span>
+        <span id="progressPercent">0%</span>
+        <span id="labelWorkEnd">18:00</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-rest-start" id="restBtn" onclick="toggleRest()">☕ 월루(휴식) 시작</button>
+    </div>
+
+    <div class="diary-section">
+      <div class="diary-header">
+        <span>📖 오늘의 월루 일기장</span>
+        <span id="totalRestEarned" style="font-size: 0.8rem; color: var(--money);">총 0원 획득</span>
+      </div>
+      <div class="diary-list" id="diaryList">
+        <div style="text-align: center; color: var(--sub-text); padding: 15px; font-size: 0.8rem;">아직 기록된 월루 일기가 없습니다.</div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div style="font-weight: 700; margin-bottom: 6px;">⚙️ 시급, 근무 시간 & 테마 설정</div>
+      <div class="settings-grid">
+        <div class="setting-item" style="grid-column: span 2;">
+          <label>시급 설정 (원)</label>
+          <input type="number" id="hourlyRateInput" value="10320" min="0" step="10" onchange="saveSettings()">
+        </div>
+        <div class="setting-item">
+          <label>출근 시간</label>
+          <input type="time" id="workStartInput" value="09:00" onchange="saveSettings()">
+        </div>
+        <div class="setting-item">
+          <label>퇴근 시간</label>
+          <input type="time" id="workEndInput" value="18:00" onchange="saveSettings()">
+        </div>
+        <div class="setting-item">
+          <label>점심 시작</label>
+          <input type="time" id="lunchStartInput" value="12:00" onchange="saveSettings()">
+        </div>
+        <div class="setting-item">
+          <label>점심 종료</label>
+          <input type="time" id="lunchEndInput" value="13:00" onchange="saveSettings()">
+        </div>
+        <div class="setting-item" style="grid-column: span 2;">
+          <label>색상 테마</label>
+          <select id="themeSelect" onchange="changeTheme(this.value)">
+            <option value="default">기본 클린 뷰</option>
+            <option value="milk-pastel">밀크 파스텔 🍓</option>
+            <option value="soda-pop">소다 팝 🥤</option>
+            <option value="sunshine">썬샤인 옐로우 🍋</option>
+            <option value="bubblegum">비비드 버블껌 🍬</option>
+            <option value="clean-neon">클린 네온 🤍</option>
+            <option value="kuromi-punk">쿠로미 펑크 🖤</option>
+            <option value="emerald-city">에메랄드 시티 🌲</option>
+            <option value="cyber-dark">딥 사이버 🌌</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let hourlyRate = 10320;
+    let perSecondRate = hourlyRate / 3600;
+
+    const LUPANG_QUOTES = [
+      "화장실에서 스마트폰으로 득템 완료 🚽",
+      "탕비실에서 믹스커피 타며 멍때리기 성공 ☕",
+      "메일함 정리하는 척 딴짓하기 성공 💻",
+      "동료와 긴급(잡담) 회의 완료 🗣️",
+      "복사기 앞에서 파일 정독하는 척하기 📄",
+      "물 마시러 가면서 사무실 한 바퀴 순찰 🚶",
+      "건강을 위한 옥상 스트레칭 타임 🧘",
+      "키보드 소리 크게 내며 엄청 바쁜 척하기 ⌨️",
+      "퇴근 후 저녁 메뉴 심도 있게 고민 완료 🍕",
+      "노트북 업데이트 핑계 대고 휴식 💻",
+      "주말 여행 계획 구상 완료 ✈️",
+      "의자 등받이 각도 테스트 완료 🪑",
+      "듀얼 모니터에 뉴스창 작게 띄워보기 📰",
+      "서류 봉투 들고 사옥 탐방 완료 📁",
+      "창밖 날씨 감상하며 감성 충전 완료 🌤️",
+      "다음 휴가 계획표 구체화 성공 🗓️",
+      "단속 카메라 피하듯 눈치 보기 성공 👁️",
+      "바탕화면 아이콘 정렬하며 시간 벌기 🖥️",
+      "소화 시킬 겸 계단 걷기 운동 완료 🏃",
+      "숨만 쉬고 있어도 돈이 쌓이는 중 💸"
+    ];
+
+    let isResting = false;
+    let restStartTime = null;
+    let totalRestEarnedAmount = 0;
+
+    function getSecondsFromTimeStr(str) {
+      const [h, m] = str.split(':').map(Number);
+      return h * 3600 + m * 60;
+    }
+
+    function saveSettings() {
+      const inputRate = parseFloat(document.getElementById('hourlyRateInput').value) || 10320;
+      hourlyRate = inputRate;
+      perSecondRate = hourlyRate / 3600;
+
+      const settings = {
+        hRate: hourlyRate,
+        wStart: document.getElementById('workStartInput').value,
+        wEnd: document.getElementById('workEndInput').value,
+        lStart: document.getElementById('lunchStartInput').value,
+        lEnd: document.getElementById('lunchEndInput').value,
+        theme: document.getElementById('themeSelect').value
+      };
+      localStorage.setItem('lupang_settings', JSON.stringify(settings));
+      updateDisplay();
+    }
+
+    function loadSettings() {
+      const saved = localStorage.getItem('lupang_settings');
+      if (saved) {
+        const s = JSON.parse(saved);
+        if (s.hRate) {
+          hourlyRate = parseFloat(s.hRate);
+          document.getElementById('hourlyRateInput').value = hourlyRate;
+        }
+        document.getElementById('workStartInput').value = s.wStart || "09:00";
+        document.getElementById('workEndInput').value = s.wEnd || "18:00";
+        document.getElementById('lunchStartInput').value = s.lStart || "12:00";
+        document.getElementById('lunchEndInput').value = s.lEnd || "13:00";
+        if (s.theme) {
+          document.getElementById('themeSelect').value = s.theme;
+          changeTheme(s.theme);
+        }
+      }
+      perSecondRate = hourlyRate / 3600;
+    }
+
+    function changeTheme(theme) {
+      if (theme === 'default') {
+        document.documentElement.removeAttribute('data-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+      saveSettings();
+    }
+
+    function toggleRest() {
+      const btn = document.getElementById('restBtn');
+      if (!isResting) {
+        isResting = true;
+        restStartTime = new Date();
+        btn.textContent = "🛑 월루(휴식) 종료 & 일기 작성";
+        btn.className = "btn btn-rest-end";
+      } else {
+        const now = new Date();
+        const diffSec = (now - restStartTime) / 1000;
+        const earned = diffSec * perSecondRate;
+        
+        addDiaryEntry(earned);
+        
+        isResting = false;
+        restStartTime = null;
+        btn.textContent = "☕ 월루(휴식) 시작";
+        btn.className = "btn btn-rest-start";
+      }
+    }
+
+    function addDiaryEntry(earned) {
+      const diaryList = document.getElementById('diaryList');
+      if (totalRestEarnedAmount === 0) diaryList.innerHTML = '';
+
+      totalRestEarnedAmount += earned;
+      document.getElementById('totalRestEarned').textContent = `총 ${totalRestEarnedAmount.toLocaleString('ko-KR', {maximumFractionDigits: 0})}원 획득`;
+
+      const randomQuote = LUPANG_QUOTES[Math.floor(Math.random() * LUPANG_QUOTES.length)];
+      
+      const item = document.createElement('div');
+      item.className = 'diary-item';
+      item.innerHTML = `
+        <span class="text">${randomQuote}</span>
+        <span class="earned">+${earned.toLocaleString('ko-KR', {minimumFractionDigits: 1, maximumFractionDigits: 1})}원</span>
+      `;
+      diaryList.prepend(item);
+    }
+
+    function updateDisplay() {
+      const now = new Date();
+      const currentSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds() + (now.getMilliseconds() / 1000);
+
+      const wStartSec = getSecondsFromTimeStr(document.getElementById('workStartInput').value);
+      const wEndSec = getSecondsFromTimeStr(document.getElementById('workEndInput').value);
+      const lStartSec = getSecondsFromTimeStr(document.getElementById('lunchStartInput').value);
+      const lEndSec = getSecondsFromTimeStr(document.getElementById('lunchEndInput').value);
+
+      // 상단 시급 표기 업데이트
+      document.getElementById('rateInfo').textContent = `시급 ${hourlyRate.toLocaleString('ko-KR')}원 (초당 ${(perSecondRate).toFixed(2)}원)`;
+
+      document.getElementById('labelWorkStart').textContent = document.getElementById('workStartInput').value;
+      document.getElementById('labelWorkEnd').textContent = document.getElementById('workEndInput').value;
+
+      // 시계 업데이트
+      const pad = n => String(n).padStart(2, '0');
+      document.getElementById('currentTime').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+      let activeWorkSeconds = 0;
+      let badgeText = "";
+
+      if (currentSec < wStartSec) {
+        activeWorkSeconds = 0;
+        badgeText = "💤 출근 전 (대기 중)";
+      } else if (currentSec >= wEndSec) {
+        const totalLunch = Math.max(0, lEndSec - lStartSec);
+        activeWorkSeconds = (wEndSec - wStartSec) - totalLunch;
+        badgeText = "🎉 칼퇴 성공! 수고하셨습니다";
+      } else {
+        if (currentSec >= lStartSec && currentSec < lEndSec) {
+          activeWorkSeconds = lStartSec - wStartSec;
+          badgeText = "☕ 점심/휴게 시간 (금액 동결)";
+        } else if (currentSec > lEndSec) {
+          const totalLunch = lEndSec - lStartSec;
+          activeWorkSeconds = (currentSec - wStartSec) - totalLunch;
+          badgeText = "🔥 실시간 월급 버는 중!";
+        } else {
+          activeWorkSeconds = currentSec - wStartSec;
+          badgeText = "🔥 실시간 월급 버는 중!";
+        }
+      }
+
+      const totalWorkDuration = (wEndSec - wStartSec) - Math.max(0, lEndSec - lStartSec);
+      const progressRatio = Math.min(100, Math.max(0, (activeWorkSeconds / totalWorkDuration) * 100));
+
+      const totalEarned = activeWorkSeconds * perSecondRate;
+
+      document.getElementById('earnedAmount').textContent = `${totalEarned.toLocaleString('ko-KR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} 원`;
+      document.getElementById('progressFill').style.width = `${progressRatio.toFixed(1)}%`;
+      document.getElementById('progressPercent').textContent = `${progressRatio.toFixed(1)}%`;
+      document.getElementById('statusBadge').textContent = badgeText;
+    }
+
+    loadSettings();
+    setInterval(updateDisplay, 50);
+  </script>
+</body>
+</html>
