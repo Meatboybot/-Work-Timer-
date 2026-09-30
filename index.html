@@ -110,7 +110,8 @@
     .modal-overlay.active { display: flex; }
     .modal-card { background: var(--card-bg); border-radius: 20px; padding: 24px; width: 100%; max-width: 420px; border: 1px solid var(--border); box-shadow: var(--shadow); max-height: 90vh; overflow-y: auto; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .modal-title { font-weight: 800; font-size: 1.1rem; }
+    .modal-title { font-weight: 800; font-size: 1.05rem; }
+    .modal-nav-btn { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
     .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--sub-text); font-weight: 800; }
     
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-bottom: 16px; }
@@ -182,8 +183,8 @@
         <div class="setting-item" style="grid-column: span 2;">
           <label>기록 저장 방식</label>
           <select id="saveModeSelect" onchange="saveSettings()">
-            <option value="session">창을 닫으면 삭제</option>
-            <option value="local">항상 기록</option>
+            <option value="session">창을 닫으면 삭제 (세션 저장)</option>
+            <option value="local">항상 기록 (쿠키/브라우저 누적 저장)</option>
           </select>
         </div>
         <div class="setting-item" style="grid-column: span 2;">
@@ -225,11 +226,13 @@
     </div>
   </div>
 
-  <!-- 달력 팝업 모달 -->
+  <!-- 달력 모달 팝업 -->
   <div class="modal-overlay" id="calendarModal">
     <div class="modal-card">
       <div class="modal-header">
-        <div class="modal-title" id="calendarMonthTitle">📅 2026년 월루 달력</div>
+        <button class="modal-nav-btn" onclick="changeCalendarMonth(-1)">◀ 이전달</button>
+        <div class="modal-title" id="calendarMonthTitle">📅 2026년 9월</div>
+        <button class="modal-nav-btn" onclick="changeCalendarMonth(1)">다음달 ▶</button>
         <button class="modal-close" onclick="closeCalendarModal()">✕</button>
       </div>
       <div class="calendar-grid" id="calendarGrid"></div>
@@ -270,6 +273,10 @@
     let isResting = false;
     let restStartTime = null;
 
+    // 달력 네비게이션 전용 현재 연/월 상태값
+    let calendarYear = new Date().getFullYear();
+    let calendarMonth = new Date().getMonth();
+
     function getTodayKey() {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -297,7 +304,6 @@
         theme: document.getElementById('themeSelect').value
       };
       
-      // 설정을 저장
       localStorage.setItem('lupang_settings', JSON.stringify(settings));
       updateDisplay();
     }
@@ -350,7 +356,6 @@
         btn.className = "btn btn-rest-end";
         liveBox.classList.add('active');
 
-        // 랜덤 제목 자동입력
         const randomQuote = LUPANG_QUOTES[Math.floor(Math.random() * LUPANG_QUOTES.length)];
         titleInput.value = randomQuote;
       } else {
@@ -363,7 +368,7 @@
         
         isResting = false;
         restStartTime = null;
-        btn.textContent = "☕ 월루(휴식) 시작";
+        btn.textContent = "☕ 월루 시작";
         btn.className = "btn btn-rest-start";
         liveBox.classList.remove('active');
       }
@@ -440,8 +445,11 @@
       }
     }
 
-    /* 달력 모달 관련 */
+    /* 달력 모달 연/월 이동 관련 기능 */
     function openCalendarModal() {
+      const now = new Date();
+      calendarYear = now.getFullYear();
+      calendarMonth = now.getMonth();
       document.getElementById('calendarModal').classList.add('active');
       renderCalendar();
     }
@@ -450,18 +458,26 @@
       document.getElementById('calendarModal').classList.remove('active');
     }
 
+    function changeCalendarMonth(offset) {
+      calendarMonth += offset;
+      if (calendarMonth < 0) {
+        calendarMonth = 11;
+        calendarYear -= 1;
+      } else if (calendarMonth > 11) {
+        calendarMonth = 0;
+        calendarYear += 1;
+      }
+      renderCalendar();
+    }
+
     function renderCalendar() {
       const storage = getStorageObject();
       const diaryData = JSON.parse(storage.getItem('lupang_diary_data') || '{}');
 
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
+      document.getElementById('calendarMonthTitle').textContent = `📅 ${calendarYear}년 ${calendarMonth + 1}월`;
 
-      document.getElementById('calendarMonthTitle').textContent = `📅 ${year}년 ${month + 1}월 월루 달력`;
-
-      const firstDay = new Date(year, month, 1).getDay();
-      const lastDate = new Date(year, month + 1, 0).getDate();
+      const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+      const lastDate = new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
       const grid = document.getElementById('calendarGrid');
       grid.innerHTML = '';
@@ -476,7 +492,7 @@
       }
 
       for (let date = 1; date <= lastDate; date++) {
-        const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(date).padStart(2,'0')}`;
+        const dateKey = `${calendarYear}-${String(calendarMonth+1).padStart(2,'0')}-${String(date).padStart(2,'0')}`;
         const dayEntries = diaryData[dateKey] || [];
         const dayTotal = dayEntries.reduce((sum, item) => sum + item.earned, 0);
 
@@ -490,6 +506,10 @@
         `;
         grid.appendChild(cell);
       }
+
+      // 초기 세부 내역 영역 초기화
+      document.getElementById('selectedDateTitle').textContent = "날짜를 클릭하면 세부 항목이 표시됩니다.";
+      document.getElementById('modalDayDiaryList').innerHTML = '';
     }
 
     function selectCalendarDate(dateKey, entries) {
