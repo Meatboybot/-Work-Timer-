@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2026 실시간 월급루팡 타이머 & 일기장</title>
+  <title>실시간 월급루팡 타이머</title>
   <style>
     /* 테마 정의 (12가지 선명하고 화사한 컬러 조합) */
     :root {
@@ -106,7 +106,7 @@
 
   <div class="container">
     <header>
-      <h1>2026 월급루팡 타이머</h1>
+      <h1>월급루팡 타이머</h1>
       <div class="subtitle" id="rateInfo">시급 10,320원 (초당 2.87원)</div>
       <div class="status-badge" id="statusBadge">상태 계산 중...</div>
     </header>
@@ -136,7 +136,7 @@
     </div>
 
     <div class="actions">
-      <button class="btn btn-rest-start" id="restBtn" onclick="toggleRest()">☕ 월루(휴식) 시작</button>
+      <button class="btn btn-rest-start" id="restBtn" onclick="toggleRest()">☕ 월루 시작</button>
     </div>
 
     <div class="diary-section">
@@ -279,7 +279,7 @@
       if (!isResting) {
         isResting = true;
         restStartTime = new Date();
-        btn.textContent = "🛑 월루(휴식) 종료 & 일기 작성";
+        btn.textContent = "🛑 월루 종료 & 일기 작성";
         btn.className = "btn btn-rest-end";
         liveBox.classList.add('active');
       } else {
