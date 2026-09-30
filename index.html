@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>실시간 월급루팡 타이머</title>
+  <title>2026 실시간 월급루팡 타이머 & 일기장</title>
   <style>
-    /* 테마 정의 (12가지 선명하고 화사한 컬러 조합) */
+    /* 테마 정의 */
     :root {
       --bg: #f8fafc;
       --card-bg: #ffffff;
@@ -73,7 +73,8 @@
       display: none;
     }
     .rest-live-box.active { display: block; animation: pulse 2s infinite; }
-    .rest-live-title { font-size: 0.8rem; color: #ef4444; font-weight: 800; margin-bottom: 4px; }
+    .rest-live-title { font-size: 0.8rem; color: #ef4444; font-weight: 800; margin-bottom: 8px; }
+    .rest-title-input { width: 100%; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-weight: 700; text-align: center; font-size: 0.9rem; margin-bottom: 8px; }
     .rest-live-value { font-size: 1.4rem; font-weight: 900; color: var(--money); font-variant-numeric: tabular-nums; }
     .rest-live-time { font-size: 0.85rem; color: var(--sub-text); font-weight: 700; margin-top: 2px; }
 
@@ -88,6 +89,7 @@
     .btn:active { transform: scale(0.98); }
     .btn-rest-start { background-color: var(--accent); color: #fff; }
     .btn-rest-end { background-color: #ef4444; color: #fff; }
+    .btn-calendar { background-color: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 10px; font-size: 0.8rem; cursor: pointer; font-weight: 700; }
 
     .diary-section { border-top: 1px solid var(--border); padding-top: 20px; }
     .diary-header { font-size: 1rem; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
@@ -100,13 +102,34 @@
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
     .setting-item label { display: block; font-size: 0.75rem; color: var(--sub-text); margin-bottom: 4px; font-weight: 600; }
     .setting-item input, .setting-item select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-weight: 600; }
+
+    .btn-danger { width: 100%; margin-top: 12px; padding: 10px; background: #ef4444; color: #fff; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.8rem; }
+
+    /* 달력 모달 팝업 스타일 */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+    .modal-overlay.active { display: flex; }
+    .modal-card { background: var(--card-bg); border-radius: 20px; padding: 24px; width: 100%; max-width: 420px; border: 1px solid var(--border); box-shadow: var(--shadow); max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-title { font-weight: 800; font-size: 1.1rem; }
+    .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--sub-text); font-weight: 800; }
+    
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-bottom: 16px; }
+    .calendar-day-head { font-size: 0.75rem; font-weight: 700; color: var(--sub-text); padding: 4px 0; }
+    .calendar-cell { border-radius: 8px; padding: 6px 2px; min-height: 52px; font-size: 0.75rem; border: 1px solid var(--border); cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; background: var(--bg); }
+    .calendar-cell.empty { border: none; background: transparent; cursor: default; }
+    .calendar-cell .day-num { font-weight: 700; text-align: left; padding-left: 4px; }
+    .calendar-cell .day-money { font-size: 0.65rem; color: var(--money); font-weight: 800; word-break: break-all; }
+    .calendar-cell.selected { border: 2px solid var(--accent); }
+
+    .day-details { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
+    .day-details-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 8px; color: var(--sub-text); }
   </style>
 </head>
 <body>
 
   <div class="container">
     <header>
-      <h1>월급루팡 타이머</h1>
+      <h1>2026 월급루팡 타이머</h1>
       <div class="subtitle" id="rateInfo">시급 10,320원 (초당 2.87원)</div>
       <div class="status-badge" id="statusBadge">상태 계산 중...</div>
     </header>
@@ -131,27 +154,38 @@
     <!-- 실시간 월루 타이머 전용 감시 상자 -->
     <div class="rest-live-box" id="restLiveBox">
       <div class="rest-live-title">🚨 실시간 월급 루팡 중!</div>
+      <input type="text" class="rest-title-input" id="restTitleInput" placeholder="오늘의 월루 제목을 입력하세요">
       <div class="rest-live-value" id="restLiveMoney">+0.00 원</div>
       <div class="rest-live-time" id="restLiveTime">휴식 시간: 00:00</div>
     </div>
 
     <div class="actions">
-      <button class="btn btn-rest-start" id="restBtn" onclick="toggleRest()">☕ 월루 시작</button>
+      <button class="btn btn-rest-start" id="restBtn" onclick="toggleRest()">☕ 월루(휴식) 시작</button>
     </div>
 
     <div class="diary-section">
       <div class="diary-header">
         <span>📖 오늘의 월루 일기장</span>
-        <span id="totalRestEarned" style="font-size: 0.8rem; color: var(--money);">총 0원 획득</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span id="totalRestEarned" style="font-size: 0.8rem; color: var(--money); font-weight: 700;">총 0원</span>
+          <button class="btn-calendar" onclick="openCalendarModal()">📅 월루 달력 보기</button>
+        </div>
       </div>
       <div class="diary-list" id="diaryList">
-        <div style="text-align: center; color: var(--sub-text); padding: 15px; font-size: 0.8rem;">아직 기록된 월루 일기가 없습니다.</div>
+        <div style="text-align: center; color: var(--sub-text); padding: 15px; font-size: 0.8rem;">아직 기록된 오늘자 월루 일기가 없습니다.</div>
       </div>
     </div>
 
     <div class="settings-section">
-      <div style="font-weight: 700; margin-bottom: 6px;">⚙️ 시급, 근무 시간 & 테마 설정</div>
+      <div style="font-weight: 700; margin-bottom: 6px;">⚙️ 시급, 근무 시간 & 저장 설정</div>
       <div class="settings-grid">
+        <div class="setting-item" style="grid-column: span 2;">
+          <label>기록 저장 방식</label>
+          <select id="saveModeSelect" onchange="saveSettings()">
+            <option value="session">창을 닫으면 삭제 (세션 저장)</option>
+            <option value="local">항상 기록 (쿠키/브라우저 누적 저장)</option>
+          </select>
+        </div>
         <div class="setting-item" style="grid-column: span 2;">
           <label>시급 설정 (원)</label>
           <input type="number" id="hourlyRateInput" value="10320" min="0" step="10" onchange="saveSettings()">
@@ -187,6 +221,22 @@
           </select>
         </div>
       </div>
+      <button class="btn-danger" onclick="clearAllData()">🗑️ 전체 월루 기록 초기화</button>
+    </div>
+  </div>
+
+  <!-- 달력 팝업 모달 -->
+  <div class="modal-overlay" id="calendarModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="calendarMonthTitle">📅 2026년 월루 달력</div>
+        <button class="modal-close" onclick="closeCalendarModal()">✕</button>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+      <div class="day-details">
+        <div class="day-details-title" id="selectedDateTitle">날짜를 클릭하면 세부 항목이 표시됩니다.</div>
+        <div class="diary-list" id="modalDayDiaryList" style="max-height: 150px;"></div>
+      </div>
     </div>
   </div>
 
@@ -210,7 +260,7 @@
       "듀얼 모니터에 뉴스창 작게 띄워보기 📰",
       "서류 봉투 들고 사옥 탐방 완료 📁",
       "창밖 날씨 감상하며 감성 충전 완료 🌤️",
-      "다음 휴가 계획표 구체화 성공 🗓️️",
+      "다음 휴가 계획표 구체화 성공 🗓️",
       "단속 카메라 피하듯 눈치 보기 성공 👁️",
       "바탕화면 아이콘 정렬하며 시간 벌기 🖥️",
       "소화 시킬 겸 계단 걷기 운동 완료 🏃",
@@ -219,11 +269,15 @@
 
     let isResting = false;
     let restStartTime = null;
-    let totalRestEarnedAmount = 0;
 
-    function getSecondsFromTimeStr(str) {
-      const [h, m] = str.split(':').map(Number);
-      return h * 3600 + m * 60;
+    function getTodayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function getStorageObject() {
+      const saveMode = document.getElementById('saveModeSelect')?.value || 'session';
+      return saveMode === 'local' ? localStorage : sessionStorage;
     }
 
     function saveSettings() {
@@ -231,7 +285,10 @@
       hourlyRate = inputRate;
       perSecondRate = hourlyRate / 3600;
 
+      const saveMode = document.getElementById('saveModeSelect').value;
+
       const settings = {
+        saveMode: saveMode,
         hRate: hourlyRate,
         wStart: document.getElementById('workStartInput').value,
         wEnd: document.getElementById('workEndInput').value,
@@ -239,6 +296,8 @@
         lEnd: document.getElementById('lunchEndInput').value,
         theme: document.getElementById('themeSelect').value
       };
+      
+      // 설정을 저장
       localStorage.setItem('lupang_settings', JSON.stringify(settings));
       updateDisplay();
     }
@@ -247,6 +306,7 @@
       const saved = localStorage.getItem('lupang_settings');
       if (saved) {
         const s = JSON.parse(saved);
+        if (s.saveMode) document.getElementById('saveModeSelect').value = s.saveMode;
         if (s.hRate) {
           hourlyRate = parseFloat(s.hRate);
           document.getElementById('hourlyRateInput').value = hourlyRate;
@@ -261,6 +321,7 @@
         }
       }
       perSecondRate = hourlyRate / 3600;
+      renderTodayDiary();
     }
 
     function changeTheme(theme) {
@@ -272,22 +333,33 @@
       saveSettings();
     }
 
+    function getSecondsFromTimeStr(str) {
+      const [h, m] = str.split(':').map(Number);
+      return h * 3600 + m * 60;
+    }
+
     function toggleRest() {
       const btn = document.getElementById('restBtn');
       const liveBox = document.getElementById('restLiveBox');
+      const titleInput = document.getElementById('restTitleInput');
 
       if (!isResting) {
         isResting = true;
         restStartTime = new Date();
-        btn.textContent = "🛑 월루 종료 & 일기 작성";
+        btn.textContent = "🛑 월루(휴식) 종료 & 일기 작성";
         btn.className = "btn btn-rest-end";
         liveBox.classList.add('active');
+
+        // 랜덤 제목 자동입력
+        const randomQuote = LUPANG_QUOTES[Math.floor(Math.random() * LUPANG_QUOTES.length)];
+        titleInput.value = randomQuote;
       } else {
         const restEndTime = new Date();
         const earnedPaidSeconds = calculatePaidSecondsBetween(restStartTime, restEndTime);
         const earned = earnedPaidSeconds * perSecondRate;
+        const customTitle = titleInput.value.trim() || "월급루팡 활동 완료 ☕";
         
-        addDiaryEntry(earned);
+        addDiaryEntry(earned, customTitle);
         
         isResting = false;
         restStartTime = null;
@@ -314,22 +386,126 @@
       return Math.max(0, totalDiffSec - lunchOverlapSec);
     }
 
-    function addDiaryEntry(earned) {
-      const diaryList = document.getElementById('diaryList');
-      if (totalRestEarnedAmount === 0) diaryList.innerHTML = '';
+    function addDiaryEntry(earned, title) {
+      const storage = getStorageObject();
+      const todayKey = getTodayKey();
 
-      totalRestEarnedAmount += earned;
-      document.getElementById('totalRestEarned').textContent = `총 ${totalRestEarnedAmount.toLocaleString('ko-KR', {maximumFractionDigits: 0})}원 획득`;
+      let diaryData = JSON.parse(storage.getItem('lupang_diary_data') || '{}');
+      if (!diaryData[todayKey]) {
+        diaryData[todayKey] = [];
+      }
 
-      const randomQuote = LUPANG_QUOTES[Math.floor(Math.random() * LUPANG_QUOTES.length)];
-      
-      const item = document.createElement('div');
-      item.className = 'diary-item';
-      item.innerHTML = `
-        <span class="text">${randomQuote}</span>
-        <span class="earned">+${earned.toLocaleString('ko-KR', {minimumFractionDigits: 1, maximumFractionDigits: 1})}원</span>
-      `;
-      diaryList.prepend(item);
+      diaryData[todayKey].unshift({
+        title: title,
+        earned: earned,
+        time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+      });
+
+      storage.setItem('lupang_diary_data', JSON.stringify(diaryData));
+      renderTodayDiary();
+    }
+
+    function renderTodayDiary() {
+      const storage = getStorageObject();
+      const todayKey = getTodayKey();
+      const diaryData = JSON.parse(storage.getItem('lupang_diary_data') || '{}');
+      const todayList = diaryData[todayKey] || [];
+
+      const diaryListEl = document.getElementById('diaryList');
+      let totalEarned = 0;
+
+      if (todayList.length === 0) {
+        diaryListEl.innerHTML = '<div style="text-align: center; color: var(--sub-text); padding: 15px; font-size: 0.8rem;">아직 기록된 오늘자 월루 일기가 없습니다.</div>';
+      } else {
+        diaryListEl.innerHTML = todayList.map(item => {
+          totalEarned += item.earned;
+          return `
+            <div class="diary-item">
+              <span class="text">${item.title}</span>
+              <span class="earned">+${item.earned.toLocaleString('ko-KR', {minimumFractionDigits: 1, maximumFractionDigits: 1})}원</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('totalRestEarned').textContent = `오늘 총 ${totalEarned.toLocaleString('ko-KR', {maximumFractionDigits: 0})}원`;
+    }
+
+    function clearAllData() {
+      if (confirm("🚨 경고: 저장된 모든 일자의 월급루팡 기록이 영구적으로 삭제됩니다.\n정말 초기화하시겠습니까?")) {
+        localStorage.removeItem('lupang_diary_data');
+        sessionStorage.removeItem('lupang_diary_data');
+        renderTodayDiary();
+        alert("모든 루팡 기록이 초기화되었습니다.");
+      }
+    }
+
+    /* 달력 모달 관련 */
+    function openCalendarModal() {
+      document.getElementById('calendarModal').classList.add('active');
+      renderCalendar();
+    }
+
+    function closeCalendarModal() {
+      document.getElementById('calendarModal').classList.remove('active');
+    }
+
+    function renderCalendar() {
+      const storage = getStorageObject();
+      const diaryData = JSON.parse(storage.getItem('lupang_diary_data') || '{}');
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+
+      document.getElementById('calendarMonthTitle').textContent = `📅 ${year}년 ${month + 1}월 월루 달력`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
+      daysOfWeek.forEach(d => {
+        grid.innerHTML += `<div class="calendar-day-head">${d}</div>`;
+      });
+
+      for (let i = 0; i < firstDay; i++) {
+        grid.innerHTML += `<div class="calendar-cell empty"></div>`;
+      }
+
+      for (let date = 1; date <= lastDate; date++) {
+        const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(date).padStart(2,'0')}`;
+        const dayEntries = diaryData[dateKey] || [];
+        const dayTotal = dayEntries.reduce((sum, item) => sum + item.earned, 0);
+
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell';
+        cell.onclick = () => selectCalendarDate(dateKey, dayEntries);
+
+        cell.innerHTML = `
+          <div class="day-num">${date}</div>
+          ${dayTotal > 0 ? `<div class="day-money">+${Math.floor(dayTotal).toLocaleString()}</div>` : ''}
+        `;
+        grid.appendChild(cell);
+      }
+    }
+
+    function selectCalendarDate(dateKey, entries) {
+      document.getElementById('selectedDateTitle').textContent = `📌 ${dateKey} 루팡 세부 내역`;
+      const listEl = document.getElementById('modalDayDiaryList');
+
+      if (entries.length === 0) {
+        listEl.innerHTML = '<div style="text-align: center; color: var(--sub-text); padding: 10px; font-size: 0.8rem;">기록된 월루 내역이 없습니다.</div>';
+      } else {
+        listEl.innerHTML = entries.map(item => `
+          <div class="diary-item">
+            <span class="text">${item.title}</span>
+            <span class="earned">+${item.earned.toLocaleString('ko-KR', {minimumFractionDigits: 1, maximumFractionDigits: 1})}원</span>
+          </div>
+        `).join('');
+      }
     }
 
     function updateDisplay() {
