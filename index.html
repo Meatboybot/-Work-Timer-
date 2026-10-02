@@ -43,8 +43,20 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
-    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px 12px; }
-    .container { background: var(--card-bg); border-radius: 28px; padding: 32px 24px; width: 100%; max-width: 500px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px 12px; position: relative; overflow-x: hidden; }
+    
+    /* 8bit 애니메이션 배경 캔버스 */
+    #moneyCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container { background: var(--card-bg); border-radius: 28px; padding: 32px 24px; width: 100%; max-width: 500px; box-shadow: var(--shadow); border: 1px solid var(--border); position: relative; z-index: 1; }
     
     header { text-align: center; margin-bottom: 24px; }
     h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; }
@@ -128,6 +140,9 @@
 </head>
 <body>
 
+  <!-- 배경 애니메이션 캔버스 -->
+  <canvas id="moneyCanvas"></canvas>
+
   <div class="container">
     <header>
       <h1>월급루팡 타이머</h1>
@@ -180,6 +195,21 @@
     <div class="settings-section">
       <div style="font-weight: 700; margin-bottom: 6px;">⚙️ 시급, 근무 시간 & 저장 설정</div>
       <div class="settings-grid">
+        <div class="setting-item">
+          <label>배경 효과</label>
+          <select id="bgEffectToggle" onchange="saveSettings()">
+            <option value="off">OFF</option>
+            <option value="on" selected>ON</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>이펙트 종류</label>
+          <select id="bgEffectType" onchange="saveSettings()">
+            <option value="bill">💵 지폐</option>
+            <option value="coin">🪙 동전</option>
+            <option value="both" selected>💸 지폐 + 동전</option>
+          </select>
+        </div>
         <div class="setting-item" style="grid-column: span 2;">
           <label>기록 저장 방식</label>
           <select id="saveModeSelect" onchange="saveSettings()">
@@ -247,7 +277,7 @@
     let hourlyRate = 10320;
     let perSecondRate = hourlyRate / 3600;
 
-const LUPANG_QUOTES = [
+    const LUPANG_QUOTES = [
       "화장실에서 스마트폰으로 득템 완료 🚽",
       "탕비실에서 믹스커피 타며 멍때리기 성공 ☕",
       "메일함 정리하는 척 딴짓하기 성공 💻",
@@ -284,7 +314,7 @@ const LUPANG_QUOTES = [
       "월급날 들어올 수당 영끌 계산해보기 💸",
       "업무 다이어리에 의미없는 낙서 예술 심취 🎨",
       "회사 공지사항 쓸데없이 토시 하나 안틀리고 정독 📢",
-      "이메일 스팸함 비우며 완벽한 정돈감 느끼기 🗑️",
+      "이메일 스팸함 비우며 완벽한 정돈감 느끼기 🗑️️",
       "스마트폰 날씨 앱으로 전국 날씨 확인 ☀️",
       "손톱 가시 정리 및 핸드크림 정성스럽게 바르기 🧴",
       "회사 근처 신상 맛집 지도 리스트업 🗺️",
@@ -303,7 +333,6 @@ const LUPANG_QUOTES = [
     let isResting = false;
     let restStartTime = null;
 
-    // 달력 네비게이션 전용 현재 연/월 상태값
     let calendarYear = new Date().getFullYear();
     let calendarMonth = new Date().getMonth();
 
@@ -331,7 +360,9 @@ const LUPANG_QUOTES = [
         wEnd: document.getElementById('workEndInput').value,
         lStart: document.getElementById('lunchStartInput').value,
         lEnd: document.getElementById('lunchEndInput').value,
-        theme: document.getElementById('themeSelect').value
+        theme: document.getElementById('themeSelect').value,
+        bgToggle: document.getElementById('bgEffectToggle').value,
+        bgType: document.getElementById('bgEffectType').value
       };
       
       localStorage.setItem('lupang_settings', JSON.stringify(settings));
@@ -355,6 +386,8 @@ const LUPANG_QUOTES = [
           document.getElementById('themeSelect').value = s.theme;
           changeTheme(s.theme);
         }
+        if (s.bgToggle) document.getElementById('bgEffectToggle').value = s.bgToggle;
+        if (s.bgType) document.getElementById('bgEffectType').value = s.bgType;
       }
       perSecondRate = hourlyRate / 3600;
       renderTodayDiary();
@@ -475,7 +508,7 @@ const LUPANG_QUOTES = [
       }
     }
 
-    /* 달력 모달 연/월 이동 관련 기능 */
+    /* 달력 모달 연/월 이동 기능 */
     function openCalendarModal() {
       const now = new Date();
       calendarYear = now.getFullYear();
@@ -537,7 +570,6 @@ const LUPANG_QUOTES = [
         grid.appendChild(cell);
       }
 
-      // 초기 세부 내역 영역 초기화
       document.getElementById('selectedDateTitle').textContent = "날짜를 클릭하면 세부 항목이 표시됩니다.";
       document.getElementById('modalDayDiaryList').innerHTML = '';
     }
@@ -623,6 +655,169 @@ const LUPANG_QUOTES = [
 
     loadSettings();
     setInterval(updateDisplay, 50);
+
+    /* -------------------------------------------------------------
+       8bit 레트로 배경 애니메이션 (지폐, 동전 & 바닥 쌓임 연출)
+    ------------------------------------------------------------- */
+    const canvas = document.getElementById('moneyCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // 픽셀 지폐 그리기 (8bit)
+    function draw8BitBill(x, y, w, h, angle) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      
+      // 지폐 외곽 및 바탕 (초록색)
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(-w/2, -h/2, w, h);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(-w/2 + 2, -h/2 + 2, w - 4, h - 4);
+      
+      // 중앙 무늬 & $ 표시
+      ctx.fillStyle = '#166534';
+      ctx.fillRect(-6, -6, 12, 12);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('₩', 0, 1);
+      
+      ctx.restore();
+    }
+
+    // 픽셀 동전 그리기 (8bit)
+    function draw8BitCoin(x, y, size, frame) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      // 회전 애니메이션용 너비 변형
+      const scaleX = Math.abs(Math.sin(frame));
+      const w = Math.max(3, size * scaleX);
+
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(-w/2, -size/2, w, size);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(-w/2 + 2, -size/2 + 2, Math.max(1, w - 4), size - 4);
+
+      ctx.restore();
+    }
+
+    // 떨어지는 개체 배열 & 바닥 누적 쌓임 변수
+    let particles = [];
+    let accumulatedHeight = 0; // 바닥에 쌓인 높이
+
+    class MoneyParticle {
+      constructor(type) {
+        this.reset(type);
+      }
+
+      reset(type) {
+        this.x = Math.random() * canvas.width;
+        this.y = -20 - Math.random() * 50;
+        this.type = type || (Math.random() > 0.5 ? 'bill' : 'coin');
+        this.speedY = 1.2 + Math.random() * 2.2;
+        this.speedX = Math.sin(Math.random() * Math.PI) * 1.2;
+        this.angle = Math.random() * Math.PI * 2;
+        this.angleSpeed = (Math.random() - 0.5) * 0.05;
+        this.size = this.type === 'bill' ? 24 : 14;
+        this.frame = Math.random() * 10;
+      }
+
+      update() {
+        this.y += this.speedY;
+        this.x += Math.sin(this.y * 0.02) * 0.8;
+        this.angle += this.angleSpeed;
+        this.frame += 0.1;
+
+        // 바닥(누적 높이 포함)에 닿았을 때
+        const floorY = canvas.height - accumulatedHeight;
+        if (this.y >= floorY) {
+          // 바닥 높이를 미세하게 올려 쌓이는 효과 연출 (최대 120px 높이 제한)
+          if (accumulatedHeight < 120) {
+            accumulatedHeight += 0.08;
+          }
+          const currentType = document.getElementById('bgEffectType').value;
+          let newType = this.type;
+          if (currentType === 'bill') newType = 'bill';
+          else if (currentType === 'coin') newType = 'coin';
+          else if (currentType === 'both') newType = Math.random() > 0.5 ? 'bill' : 'coin';
+
+          this.reset(newType);
+        }
+      }
+
+      draw() {
+        if (this.type === 'bill') {
+          draw8BitBill(this.x, this.y, this.size * 1.5, this.size, this.angle);
+        } else {
+          draw8BitCoin(this.x, this.y, this.size, this.frame);
+        }
+      }
+    }
+
+    // 파티클 생성 함수
+    function initParticles() {
+      particles = [];
+      for (let i = 0; i < 40; i++) {
+        particles.push(new MoneyParticle());
+      }
+    }
+    initParticles();
+
+    // 배경 애니메이션 메인 루프
+    function animateBackground() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const isToggleOn = document.getElementById('bgEffectToggle').value === 'on';
+      const effectType = document.getElementById('bgEffectType').value;
+
+      if (isToggleOn) {
+        // 1. 떨어지는 지폐/동전 그리기
+        particles.forEach(p => {
+          if (effectType === 'bill') p.type = 'bill';
+          else if (effectType === 'coin') p.type = 'coin';
+          
+          p.update();
+          p.draw();
+        });
+
+        // 2. 바닥에 쌓인 8bit 돈 더미 연출
+        if (accumulatedHeight > 1) {
+          const h = accumulatedHeight;
+          const y = canvas.height - h;
+
+          // 쌓인 돈 더미의 베이스 색상 & 픽셀 질감
+          ctx.fillStyle = '#15803d';
+          ctx.fillRect(0, y, canvas.width, h);
+
+          // 픽셀 금화/지폐 텍스처 느낌의 상단 레이어
+          ctx.fillStyle = '#eab308';
+          for (let x = 0; x < canvas.width; x += 16) {
+            const waveY = Math.sin(x * 0.05) * 3;
+            ctx.fillRect(x, y + waveY, 12, Math.min(6, h));
+          }
+          ctx.fillStyle = '#4ade80';
+          for (let x = 8; x < canvas.width; x += 24) {
+            ctx.fillRect(x, y + 2, 10, Math.min(4, h));
+          }
+        }
+      } else {
+        // OFF 시 바닥 쌓임 초기화
+        accumulatedHeight = 0;
+      }
+
+      requestAnimationFrame(animateBackground);
+    }
+
+    animateBackground();
   </script>
 </body>
 </html>
